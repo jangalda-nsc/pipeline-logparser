@@ -80,7 +80,7 @@
                         <code><br>
                             &nbsp;&nbsp;// get RunWrapper for current job last stable run<br>
                             &nbsp;&nbsp;// using https://github.com/gdemengin/pipeline-whitelist<br>
-                            &nbsp;&nbsp;@Library('pipeline-whitelist@2.0.1') _<br>
+                            &nbsp;&nbsp;@Library('pipeline-whitelist@3.0') _<br>
                             &nbsp;&nbsp;def otherBuild = whitelist.getLastStableRunWrapper(whitelist.getJobByName(env.JOB_NAME))<br>
                             &nbsp;&nbsp;<br>
                             &nbsp;&nbsp;def blueTree = logparser.getBlueOceanUrls(otherBuild)<br>
@@ -152,12 +152,23 @@
                                 </code><br>
                             </li>
                             <li>
-                                <b>show stage name</b> with option <code>showStages=true</code><br>
+                                <b>hide stage name</b> with option <code>showStages=false</code><br>
                                 <code><br>
                                     &nbsp;&nbsp;stage ('stage1') {<br>
                                     &nbsp;&nbsp;&nbsp;&nbsp;echo 'in stage 1'<br>
                                     &nbsp;&nbsp;}<br>
                                     &nbsp;&nbsp;print logparser.getLogsWithBranchInfo(showStages: true)<br>
+                                </code><br>
+                                result:<br>
+                                <code><br>
+                                    &nbsp;&nbsp;in stage 1<br>
+                                </code><br>
+                                or show stage name (default)<br>
+                                <code><br>
+                                    &nbsp;&nbsp;stage ('stage1') {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;echo 'in stage 1'<br>
+                                    &nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;print logparser.getLogsWithBranchInfo()<br>
                                 </code><br>
                                 result:<br>
                                 <code><br>
@@ -194,6 +205,29 @@
                                     &nbsp;&nbsp;[branch21] in branch2.branch21<br>
                                 </code><br>
                             </li>
+                            <li>
+                                <b>show duplicate parent branch name</b> with option <code>mergeNestedDuplicates=false</code><br>
+                                <code><br>
+                                    &nbsp;&nbsp;parallel branch2: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;stage('branch2') { echo 'in stage branch2' }<br>
+                                    &nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;print logparser.getLogsWithBranchInfo(mergeNestedDuplicates: false)<br>
+                                </code><br>
+                                result:<br>
+                                <code><br>
+                                    &nbsp;&nbsp;[branch2] [branch2] in stage branch2
+                                </code><br>
+                                or hide duplicates (default)
+                                <code><br>
+                                    &nbsp;&nbsp;parallel branch2: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;stage('branch2') { echo 'in stage branch2' }<br>
+                                    &nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;print logparser.getLogsWithBranchInfo()<br>
+                                </code><br>
+                                result:<br>
+                                <code><br>
+                                    &nbsp;&nbsp;[branch2] in stage branch2
+                                </code><br>
                             <li>
                                 <b>show VT100 markups</b> (hidden by default as they make raw log hard to read) with option <code>hideVT100=false</code><br>
                                 <code><br>
@@ -346,6 +380,87 @@
                                     &nbsp;&nbsp;&lt;nested branch [branch2]&gt;<br>
                                 </code><br>
                             </li>
+                            <li>
+                                <b>filter branch using list of parent name(s)</b><br>
+                                <code><br>
+                                    &nbsp;&nbsp;parallel branch1: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch1'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;parallel branch11: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch1.branch11'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parallel branchA: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch1.branch11.branchA'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;}, branch2: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch2'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;parallel branch21: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch2.branch21'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parallel branchA: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch2.branch21.branchA'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;print logparser.getLogsWithBranchInfo(filter: [ [ 'branch2', 'branch21', 'branchA' ] ])<br>
+                                </code><br>
+                                result:<br>
+                                <code><br>
+                                    &nbsp;&nbsp;[branch2] [branch21] [branchA] in branch2.branch21.branchA<br>
+                                </code><br>
+                            </li>
+                            <li>
+                                <b>ilter branch using the immediate parent name(s)</b><br>
+                                <code><br>
+                                    &nbsp;&nbsp;parallel branch1: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch1'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;parallel branch11: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch1.branch11'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parallel branchA: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch1.branch11.branchA'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;}, branch2: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch2'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;parallel branch21: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch2.branch21'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parallel branchA: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch2.branch21.branchA'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;print logparser.getLogsWithBranchInfo(filter: [ [ 'branch21', 'branchA' ] ])<br>
+                                </code><br>
+                                result:<br>
+                                <code><br>
+                                    &nbsp;&nbsp;[branch2] [branch21] [branchA] in branch2.branch21.branchA<br>
+                                </code><br>
+                            </li>
+                            <li>
+                                <b>filter branch using regular expression on parent name(s)</b><br>
+                                <code><br>
+                                    &nbsp;&nbsp;parallel branch1: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch1'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;parallel branch11: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch1.branch11'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parallel branchA: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch1.branch11.branchA'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;}, branch2: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch2'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;parallel branch21: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch2.branch21'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parallel branchA: {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo 'in branch2.branch21.branchA'<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;}<br>
+                                    &nbsp;&nbsp;print logparser.getLogsWithBranchInfo(filter: [ [ 'branch2.*', '.*A' ] ])<br>
+                                </code><br>
+                                result:<br>
+                                <code><br>
+                                    &nbsp;&nbsp;[branch2] [branch21] [branchA] in branch2.branch21.branchA<br>
+                                </code><br>
+                            </li>
                         </ul>
                     </li>
                     <li>
@@ -353,7 +468,7 @@
                         <code><br>
                             &nbsp;&nbsp;// get RunWrapper for current job last stable run<br>
                             &nbsp;&nbsp;// using https://github.com/gdemengin/pipeline-whitelist<br>
-                            &nbsp;&nbsp;@Library('pipeline-whitelist@2.0.1') _<br>
+                            &nbsp;&nbsp;@Library('pipeline-whitelist@3.0') _<br>
                             &nbsp;&nbsp;def otherBuild = whitelist.getLastStableRunWrapper(whitelist.getJobByName(env.JOB_NAME))<br>
                             &nbsp;&nbsp;<br>
                             &nbsp;&nbsp;def otherBuildLogs = logparser.getLogsWithBranchInfo([:], otherBuild)<br>
@@ -486,7 +601,7 @@
                         <code><br>
                             &nbsp;&nbsp;// get RunWrapper for current job last stable run<br>
                             &nbsp;&nbsp;// using https://github.com/gdemengin/pipeline-whitelist<br>
-                            &nbsp;&nbsp;@Library('pipeline-whitelist@2.0.1') _<br>
+                            &nbsp;&nbsp;@Library('pipeline-whitelist@3.0') _<br>
                             &nbsp;&nbsp;def otherBuild = whitelist.getLastStableRunWrapper(whitelist.getJobByName(env.JOB_NAME))<br>
                             &nbsp;&nbsp;<br>
                             &nbsp;&nbsp;def stepsTree = logparser.getPipelineStepsUrls(otherBuild)<br>
